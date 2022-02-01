@@ -13,12 +13,12 @@ import (
 )
 
 // FS is an in-memory filesystem that implements
-// FS 基于内存的文件系统实现（有助于理解文件系统，使用io/fs）
+// FS 基于内存的文件系统实现（有助于理解Go抽象文件系统，使用io/fs）
 type FS struct {
 	dir *dir
 }
 
-// New creates a new in-memory FileSystem.
+// New 创建基于内存的文件系统
 func New() *FS {
 	return &FS{
 		dir: &dir{
@@ -27,6 +27,7 @@ func New() *FS {
 	}
 }
 
+// MkdirAll 根据名称创建文件夹，如果已经是个文件夹，那么什么都不做
 // MkdirAll creates a directory named path,
 // along with any necessary parents, and returns nil,
 // or else returns an error.
@@ -40,13 +41,14 @@ func (rootFS *FS) MkdirAll(path string, perm os.FileMode) error {
 	}
 
 	if path == "." {
-		// root dir always exists
+		// root 目录一直存在
 		return nil
 	}
 
 	parts := strings.Split(path, "/")
 
 	next := rootFS.dir
+	// 遍历目录树
 	for _, part := range parts {
 		cur := next
 		cur.mu.Lock()
@@ -149,6 +151,7 @@ func (rootFS *FS) get(path string) (childI, error) {
 	return chld, nil
 }
 
+// create 创建文件
 func (rootFS *FS) create(path string) (*File, error) {
 	if !fs.ValidPath(path) {
 		return nil, fmt.Errorf("invalid path: %s: %w", path, fs.ErrInvalid)
@@ -171,10 +174,11 @@ func (rootFS *FS) create(path string) (*File, error) {
 	defer dir.mu.Unlock()
 	existing := dir.children[filePart]
 	if existing != nil {
-		_, ok := existing.(*File)
+		f, ok := existing.(*File)
 		if !ok {
 			return nil, fmt.Errorf("path is a directory: %s: %w", path, fs.ErrExist)
 		}
+		return f, nil // bug fix
 	}
 
 	newFile := &File{
@@ -187,6 +191,7 @@ func (rootFS *FS) create(path string) (*File, error) {
 	return newFile, nil
 }
 
+// WriteFile 向内存文件系统中写入数据，如果文件不存在，使用permissions权限创建文件
 // WriteFile writes data to a file named by filename.
 // If the file does not exist, WriteFile creates it with permissions perm
 // (before umask); otherwise WriteFile truncates it before writing, without changing permissions.
@@ -205,7 +210,7 @@ func (rootFS *FS) WriteFile(path string, data []byte, perm os.FileMode) error {
 		return err
 	}
 	f.content = bytes.NewBuffer(data)
-	f.perm = perm
+	f.perm = perm // 应该判读是新创建的文件，还是旧文件，不一定要设置这个perm吧
 	return nil
 }
 
