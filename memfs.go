@@ -13,7 +13,7 @@ import (
 )
 
 // FS is an in-memory filesystem that implements
-// io/fs.FS
+// FS 基于内存的文件系统实现（有助于理解文件系统，使用io/fs）
 type FS struct {
 	dir *dir
 }

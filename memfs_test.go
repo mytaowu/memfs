@@ -10,7 +10,6 @@ import (
 )
 
 func TestMemFS(t *testing.T) {
-
 	rootFS := New()
 
 	err := rootFS.MkdirAll("foo/bar", 0777)
